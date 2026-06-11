@@ -2,66 +2,56 @@
 <html>
 
 <head>
-
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Scanner Estoque</title>
+<script src="https://unpkg.com/@zxing/library@latest"></script>
 
+<title>Scanner Estoque</title>
 </head>
 
 <body>
 
 <h2>Scanner de Código de Barras</h2>
 
-<button onclick="abrirCamera()">
-Abrir Câmera
+<button onclick="iniciarScanner()">
+Iniciar Scanner
 </button>
 
 <br><br>
 
-<video
-id="video"
+<video id="video"
 width="100%"
 autoplay
 playsinline>
 </video>
 
-<p id="status"></p>
+<h3 id="resultado"></h3>
 
 <script>
 
-async function abrirCamera() {
+let scanner;
 
-    try {
+async function iniciarScanner() {
 
-        const stream =
-        await navigator.mediaDevices.getUserMedia({
+    scanner =
+    new ZXing.BrowserMultiFormatReader();
 
-            video: {
-                facingMode: "environment"
+    scanner.decodeFromVideoDevice(
+        null,
+        'video',
+        (result, err) => {
+
+            if(result){
+
+                document
+                .getElementById("resultado")
+                .innerHTML =
+                "Código: " + result.text;
+
             }
 
-        });
-
-        document
-        .getElementById("video")
-        .srcObject = stream;
-
-        document
-        .getElementById("status")
-        .innerHTML =
-        "Câmera aberta com sucesso.";
-
-    }
-
-    catch(err) {
-
-        document
-        .getElementById("status")
-        .innerHTML =
-        err.name + " - " + err.message;
-
-    }
+        }
+    );
 
 }
 
