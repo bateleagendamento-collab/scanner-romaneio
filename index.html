@@ -5,43 +5,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Estoque v2.0</title>
+    <title>Controle de Estoque v4.0</title>
 
 ```
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
 <style>
-    body {
+
+    body{
         font-family: Arial, sans-serif;
-        text-align: center;
-        margin: 15px;
+        margin:15px;
+        text-align:center;
+        background:#f5f5f5;
     }
 
-    video {
-        width: 100%;
-        max-width: 500px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
+    video{
+        width:100%;
+        max-width:600px;
+        border-radius:10px;
+        border:2px solid #ccc;
+        background:black;
     }
 
-    button {
-        padding: 12px 20px;
-        margin: 5px;
-        font-size: 16px;
-        cursor: pointer;
+    button{
+        padding:12px 18px;
+        margin:5px;
+        border:none;
+        border-radius:6px;
+        cursor:pointer;
+        font-size:16px;
     }
 
-    #resultado {
-        margin-top: 15px;
-        font-size: 20px;
-        font-weight: bold;
-        color: green;
+    .btn-iniciar{
+        background:#28a745;
+        color:white;
     }
 
-    #status {
-        margin-top: 10px;
-        color: #555;
+    .btn-novo{
+        background:#007bff;
+        color:white;
     }
+
+    #resultado{
+        margin-top:15px;
+        font-size:20px;
+        font-weight:bold;
+        color:#198754;
+        word-break:break-all;
+    }
+
+    #status{
+        margin-top:10px;
+    }
+
+    #contador{
+        margin-top:10px;
+        font-size:18px;
+        font-weight:bold;
+    }
+
+    #historico{
+        margin-top:20px;
+        text-align:left;
+        background:white;
+        padding:10px;
+        border-radius:8px;
+    }
+
+    table{
+        width:100%;
+        border-collapse:collapse;
+    }
+
+    th,td{
+        border:1px solid #ddd;
+        padding:6px;
+        font-size:14px;
+    }
+
+    th{
+        background:#efefef;
+    }
+
 </style>
 ```
 
@@ -49,104 +94,280 @@
 
 <body>
 
-```
-<h2>Scanner de Código de Barras</h2>
+<h2>Controle de Estoque</h2>
 
-<button onclick="iniciarScanner()">
-    Iniciar Scanner
-</button>
+<div>
 
-<button onclick="novoScan()">
-    Novo Scan
-</button>
+<label>
+<input type="radio"
+name="operacao"
+value="Entrada"
+checked>
+Entrada
+</label>
+
+  
+
+<label>
+<input type="radio"
+name="operacao"
+value="Saída">
+Saída
+</label>
+
+</div>
+
+<br>
+
+<button class="btn-iniciar"
+onclick="iniciarScanner()">
+Iniciar Scanner </button>
+
+<button class="btn-novo"
+onclick="novoScan()">
+Novo Scan </button>
 
 <br><br>
 
-<video id="video" autoplay playsinline></video>
+<video id="video"
+autoplay
+playsinline> </video>
 
 <div id="resultado"></div>
+
 <div id="status"></div>
+
+<div id="contador">
+Leituras: 0
+</div>
+
+<div id="historico">
+
+<h3>Últimas Leituras</h3>
+
+<table>
+
+<thead>
+<tr>
+<th>Hora</th>
+<th>Operação</th>
+<th>Código</th>
+</tr>
+</thead>
+
+<tbody id="tbHistorico">
+
+</tbody>
+
+</table>
+
+</div>
 
 <script>
 
-    let scanner;
-    let codigoLido = false;
+let scanner;
+let codigoLido = false;
+let totalLeituras = 0;
 
-    async function iniciarScanner() {
+function tocarBip(){
 
-        document.getElementById("status").innerHTML =
-            "Abrindo câmera...";
+    const audio =
+    new (window.AudioContext ||
+    window.webkitAudioContext)();
 
-        scanner = new ZXing.BrowserMultiFormatReader();
+    const osc =
+    audio.createOscillator();
 
-        scanner.decodeFromVideoDevice(
-            null,
-            "video",
-            (result, err) => {
+    const gain =
+    audio.createGain();
 
-                if (result && !codigoLido) {
+    osc.connect(gain);
+    gain.connect(audio.destination);
 
-                    codigoLido = true;
+    osc.frequency.value = 1000;
 
-                    const codigo = result.text;
+    osc.start();
 
-                    document.getElementById("resultado").innerHTML =
-                        "Código: " + codigo;
+    gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        audio.currentTime + 0.2
+    );
 
-                    document.getElementById("status").innerHTML =
-                        "Salvando na planilha...";
+    osc.stop(audio.currentTime + 0.2);
 
-                    fetch(
-                        "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec",
-                        {
-                            method: "POST",
-                            body: JSON.stringify({
-                                codigo: codigo
-                            })
-                        }
-                    )
-                    .then(response => response.text())
-                    .then(data => {
+}
 
-                        document.getElementById("status").innerHTML =
-                            "Código salvo com sucesso!";
+async function iniciarScanner(){
 
-                        alert("Código salvo!");
+    document.getElementById("status").innerHTML =
+    "Abrindo câmera...";
 
-                    })
-                    .catch(error => {
+    const hints = new Map();
 
-                        document.getElementById("status").innerHTML =
-                            "Erro ao salvar.";
+    hints.set(
+        ZXing.DecodeHintType.TRY_HARDER,
+        true
+    );
 
-                        alert("Erro ao salvar: " + error);
+    scanner =
+    new ZXing.BrowserMultiFormatReader(hints);
 
-                        codigoLido = false;
+    scanner.decodeFromConstraints(
 
-                    });
-
+        {
+            video:{
+                facingMode:{
+                    ideal:"environment"
+                },
+                width:{
+                    ideal:1920
+                },
+                height:{
+                    ideal:1080
                 }
+            }
+        },
+
+        "video",
+
+        (result, err)=>{
+
+            if(result && !codigoLido){
+
+                codigoLido = true;
+
+                const codigo =
+                result.text;
+
+                const operacao =
+                document.querySelector(
+                    'input[name="operacao"]:checked'
+                ).value;
+
+                const agora =
+                new Date();
+
+                const hora =
+                agora.toLocaleTimeString(
+                    "pt-BR"
+                );
+
+                tocarBip();
+
+                document.getElementById(
+                    "resultado"
+                ).innerHTML =
+                "Código: " + codigo;
+
+                document.getElementById(
+                    "status"
+                ).innerHTML =
+                "Salvando...";
+
+                fetch(
+                    "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec",
+                    {
+                        method:"POST",
+                        body:JSON.stringify({
+
+                            codigo:codigo,
+                            operacao:operacao
+
+                        })
+                    }
+                )
+                .then(r => r.text())
+                .then(data => {
+
+                    totalLeituras++;
+
+                    document.getElementById(
+                        "contador"
+                    ).innerHTML =
+                    "Leituras: " +
+                    totalLeituras;
+
+                    document.getElementById(
+                        "status"
+                    ).innerHTML =
+                    "Salvo com sucesso";
+
+                    adicionarHistorico(
+                        hora,
+                        operacao,
+                        codigo
+                    );
+
+                })
+                .catch(error => {
+
+                    document.getElementById(
+                        "status"
+                    ).innerHTML =
+                    "Erro ao salvar";
+
+                    codigoLido = false;
+
+                });
 
             }
+
+        }
+
+    );
+
+}
+
+function adicionarHistorico(
+    hora,
+    operacao,
+    codigo
+){
+
+    const tabela =
+    document.getElementById(
+        "tbHistorico"
+    );
+
+    const linha =
+    tabela.insertRow(0);
+
+    linha.insertCell(0).innerHTML =
+    hora;
+
+    linha.insertCell(1).innerHTML =
+    operacao;
+
+    linha.insertCell(2).innerHTML =
+    codigo;
+
+    while(tabela.rows.length > 20){
+
+        tabela.deleteRow(
+            tabela.rows.length - 1
         );
 
     }
 
-    function novoScan() {
+}
 
-        codigoLido = false;
+function novoScan(){
 
-        document.getElementById("resultado").innerHTML = "";
+    codigoLido = false;
 
-        document.getElementById("status").innerHTML =
-            "Pronto para nova leitura.";
+    document.getElementById(
+        "resultado"
+    ).innerHTML = "";
 
-    }
+    document.getElementById(
+        "status"
+    ).innerHTML =
+    "Pronto para nova leitura";
+
+}
 
 </script>
-```
 
 </body>
-
 </html>
 
