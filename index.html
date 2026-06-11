@@ -1,76 +1,152 @@
 <!DOCTYPE html>
-<html>
+
+<html lang="pt-BR">
 
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Estoque v2.0</title>
 
+```
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
-<title>Scanner Estoque v2.0</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 15px;
+    }
+
+    video {
+        width: 100%;
+        max-width: 500px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+    }
+
+    button {
+        padding: 12px 20px;
+        margin: 5px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    #resultado {
+        margin-top: 15px;
+        font-size: 20px;
+        font-weight: bold;
+        color: green;
+    }
+
+    #status {
+        margin-top: 10px;
+        color: #555;
+    }
+</style>
+```
+
 </head>
 
 <body>
 
+```
 <h2>Scanner de Código de Barras</h2>
 
 <button onclick="iniciarScanner()">
-Iniciar Scanner
+    Iniciar Scanner
+</button>
+
+<button onclick="novoScan()">
+    Novo Scan
 </button>
 
 <br><br>
 
-<video id="video"
-width="100%"
-autoplay
-playsinline>
-</video>
+<video id="video" autoplay playsinline></video>
 
-<h3 id="resultado"></h3>
+<div id="resultado"></div>
+<div id="status"></div>
 
 <script>
 
-let scanner;
+    let scanner;
+    let codigoLido = false;
 
-async function iniciarScanner() {
+    async function iniciarScanner() {
 
-    scanner =
-    new ZXing.BrowserMultiFormatReader();
+        document.getElementById("status").innerHTML =
+            "Abrindo câmera...";
 
-    scanner.decodeFromVideoDevice(
-        null,
-        'video',
-        (result, err) => {
+        scanner = new ZXing.BrowserMultiFormatReader();
 
-        if(result && !window.codigoLido){
+        scanner.decodeFromVideoDevice(
+            null,
+            "video",
+            (result, err) => {
 
-    window.codigoLido = true;
+                if (result && !codigoLido) {
 
-    document
-    .getElementById("resultado")
-    .innerHTML =
-    "Código: " + result.text;
+                    codigoLido = true;
 
-    fetch(
-      "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          codigo: result.text
-        })
-      }
-    );
+                    const codigo = result.text;
 
-    alert("Código salvo!");
+                    document.getElementById("resultado").innerHTML =
+                        "Código: " + codigo;
 
-}
+                    document.getElementById("status").innerHTML =
+                        "Salvando na planilha...";
 
-}
-        }
-    );
+                    fetch(
+                        "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec",
+                        {
+                            method: "POST",
+                            body: JSON.stringify({
+                                codigo: codigo
+                            })
+                        }
+                    )
+                    .then(response => response.text())
+                    .then(data => {
 
-}
+                        document.getElementById("status").innerHTML =
+                            "Código salvo com sucesso!";
+
+                        alert("Código salvo!");
+
+                    })
+                    .catch(error => {
+
+                        document.getElementById("status").innerHTML =
+                            "Erro ao salvar.";
+
+                        alert("Erro ao salvar: " + error);
+
+                        codigoLido = false;
+
+                    });
+
+                }
+
+            }
+        );
+
+    }
+
+    function novoScan() {
+
+        codigoLido = false;
+
+        document.getElementById("resultado").innerHTML = "";
+
+        document.getElementById("status").innerHTML =
+            "Pronto para nova leitura.";
+
+    }
 
 </script>
+```
 
 </body>
+
 </html>
+
