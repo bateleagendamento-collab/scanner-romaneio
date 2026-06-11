@@ -1,33 +1,69 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
-<meta name="viewport"
-content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Scanner</title>
+<title>Scanner Estoque</title>
 
 </head>
 
 <body>
 
-<h2>Scanner de Código</h2>
+<h2>Scanner de Código de Barras</h2>
 
-<button id="btn">
-Abrir Scanner
+<button onclick="abrirCamera()">
+Abrir Câmera
 </button>
 
-<p id="codigo"></p>
+<br><br>
+
+<video
+id="video"
+width="100%"
+autoplay
+playsinline>
+</video>
+
+<p id="status"></p>
 
 <script>
 
-document
-.getElementById("btn")
-.addEventListener("click", function(){
+async function abrirCamera() {
 
-    alert("Próxima etapa");
+    try {
 
-});
+        const stream =
+        await navigator.mediaDevices.getUserMedia({
+
+            video: {
+                facingMode: "environment"
+            }
+
+        });
+
+        document
+        .getElementById("video")
+        .srcObject = stream;
+
+        document
+        .getElementById("status")
+        .innerHTML =
+        "Câmera aberta com sucesso.";
+
+    }
+
+    catch(err) {
+
+        document
+        .getElementById("status")
+        .innerHTML =
+        err.name + " - " + err.message;
+
+    }
+
+}
 
 </script>
 
