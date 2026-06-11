@@ -41,15 +41,30 @@ async function iniciarScanner() {
         'video',
         (result, err) => {
 
-            if(result){
+        if(result && !window.codigoLido){
 
-                document
-                .getElementById("resultado")
-                .innerHTML =
-                "Código: " + result.text;
+    window.codigoLido = true;
 
-            }
+    document
+    .getElementById("resultado")
+    .innerHTML =
+    "Código: " + result.text;
 
+    fetch(
+      "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          codigo: result.text
+        })
+      }
+    );
+
+    alert("Código salvo!");
+
+}
+
+}
         }
     );
 
