@@ -70,7 +70,7 @@ video {
 
 <script>
 
-const URL_API = "SUA_URL_AQUI";
+const URL_API = "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec";
 
 let scanner;
 let lock = false;
@@ -78,21 +78,22 @@ let lock = false;
 // ================= LOGIN =================
 async function login() {
 
-    const user = document.getElementById("user").value;
-    const pass = document.getElementById("pass").value;
-
     try {
 
         const res = await fetch(URL_API, {
-            method:"POST",
+            method: "POST",
             body: JSON.stringify({
-                tipo:"login",
-                usuario:user,
-                senha:pass
+                tipo: "login",
+                usuario: document.getElementById("user").value,
+                senha: document.getElementById("pass").value
             })
         });
 
-        const data = await res.json();
+        const text = await res.text();
+
+        console.log("RESPOSTA RAW:", text);
+
+        const data = JSON.parse(text);
 
         if (data.ok) {
 
@@ -102,14 +103,18 @@ async function login() {
             document.getElementById("usuario").innerText = data.nome;
 
         } else {
-            document.getElementById("erro").innerText = "Login inválido";
+            document.getElementById("erro").innerText =
+                "Login inválido: " + (data.error || "");
         }
 
-    } catch {
-        document.getElementById("erro").innerText = "Erro servidor";
+    } catch (err) {
+
+        console.log("ERRO COMPLETO:", err);
+
+        document.getElementById("erro").innerText =
+            "Erro servidor (veja console)";
     }
 }
-
 // ================= SCANNER =================
 function start() {
 
