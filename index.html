@@ -4,45 +4,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle Pro</title>
+
+<title>Controle de Estoque Pro</title>
 
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
 <style>
 body {
-    margin:0;
-    font-family: Arial;
-    background:#0f172a;
-    color:white;
-    text-align:center;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a, #111827);
+    color: #e5e7eb;
+    text-align: center;
 }
 
+/* LOGIN */
 #loginBox {
-    position:fixed;
-    inset:0;
-    background:#111827;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
+    position: fixed;
+    inset: 0;
+    background: #0b1220;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 input {
-    padding:10px;
-    margin:5px;
-    width:200px;
+    padding: 12px;
+    margin: 5px;
+    width: 220px;
+    border-radius: 8px;
+    border: none;
 }
 
+/* BOTÕES */
 button {
-    padding:10px;
-    margin:5px;
-    border:none;
-    border-radius:6px;
+    padding: 12px 16px;
+    margin: 6px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
 }
 
+.btn {
+    background: #22c55e;
+    color: white;
+}
+
+.btn2 {
+    background: #3b82f6;
+    color: white;
+}
+
+/* DASHBOARD */
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px;
+    max-width: 500px;
+    margin: auto;
+}
+
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 12px;
+}
+
+/* VIDEO */
 video {
-    width:90%;
-    max-width:500px;
+    width: 90%;
+    max-width: 420px;
+    border-radius: 12px;
+    margin-top: 10px;
+}
+
+#status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #93c5fd;
+}
+
+#resultado {
+    margin-top: 10px;
+    font-size: 18px;
+    color: #22c55e;
 }
 </style>
 
@@ -50,97 +98,143 @@ video {
 
 <body>
 
+<!-- LOGIN -->
 <div id="loginBox">
-    <h2>Login Seguro</h2>
+    <h2>🔐 Login Sistema</h2>
+
     <input id="user" placeholder="Usuário">
     <input id="pass" type="password" placeholder="Senha">
-    <button onclick="login()">Entrar</button>
+
+    <button class="btn" onclick="login()">Entrar</button>
+
     <p id="erro"></p>
 </div>
 
+<!-- USUÁRIO -->
 <h3>Usuário: <span id="usuario">--</span></h3>
 
-<button onclick="start()">Iniciar Scanner</button>
+<!-- DASHBOARD -->
+<div class="dashboard">
 
-<br><br>
+<div class="card">
+📦 Leituras<br>
+<strong id="d_leituras">0</strong>
+</div>
+
+<div class="card">
+📶 Status<br>
+<strong id="d_status">Online</strong>
+</div>
+
+</div>
+
+<!-- CONTROLES -->
+<div>
+<label><input type="radio" name="op" value="Saída" checked> Saída</label>
+<label><input type="radio" name="op" value="Entrada"> Entrada</label>
+</div>
+
+<br>
+
+<button class="btn" onclick="startScanner()">📷 Iniciar Scanner</button>
+<button class="btn2" onclick="reset()">Novo Scan</button>
+
+<br>
 
 <video id="video" autoplay playsinline></video>
 
-<div id="result"></div>
+<div id="resultado"></div>
+<div id="status"></div>
 
 <script>
 
 const URL_API = "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec";
 
 let scanner;
-let lock = false;
+let trava = false;
+let leituras = 0;
 
 // ================= LOGIN =================
 async function login() {
 
-  try {
+    try {
 
-    const res = await fetch(URL_API, {
-      method: "POST",
-      body: JSON.stringify({
-        tipo: "login",
-        usuario: document.getElementById("user").value,
-        senha: document.getElementById("pass").value
-      })
-    });
+        const res = await fetch(URL_API, {
+            method: "POST",
+            body: JSON.stringify({
+                tipo: "login",
+                usuario: document.getElementById("user").value,
+                senha: document.getElementById("pass").value
+            })
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (data.ok) {
+        if (data.ok) {
 
-      localStorage.setItem("usuario", data.nome);
+            localStorage.setItem("usuario", data.nome);
 
-      document.getElementById("loginBox").style.display = "none";
-      document.getElementById("usuario").innerText = data.nome;
+            document.getElementById("loginBox").style.display = "none";
+            document.getElementById("usuario").innerText = data.nome;
 
-    } else {
-      document.getElementById("erro").innerText = "Login inválido";
+        } else {
+            document.getElementById("erro").innerText = "Login inválido";
+        }
+
+    } catch {
+        document.getElementById("erro").innerText = "Erro servidor";
     }
-
-  } catch (err) {
-    document.getElementById("erro").innerText = "Erro servidor";
-    console.log(err);
-  }
 }
+
 // ================= SCANNER =================
-function start() {
+function startScanner() {
 
     scanner = new ZXing.BrowserMultiFormatReader();
 
     scanner.decodeFromConstraints(
-        { video: { facingMode:"environment" } },
+        { video: { facingMode: "environment" } },
         "video",
         async (result) => {
 
-            if (result && !lock) {
+            if (result && !trava) {
 
-                lock = true;
+                trava = true;
 
                 const codigo = result.text;
                 const usuario = localStorage.getItem("usuario");
 
-                document.getElementById("result").innerText = codigo;
+                const operacao = document.querySelector('input[name="op"]:checked').value;
+
+                document.getElementById("resultado").innerText = "Código: " + codigo;
+                document.getElementById("status").innerText = "Enviando...";
 
                 await fetch(URL_API, {
-                    method:"POST",
+                    method: "POST",
                     body: JSON.stringify({
                         id: crypto.randomUUID(),
                         datahora: new Date().toLocaleString(),
-                        operacao:"Saída",
+                        operacao,
                         codigo,
                         usuario
                     })
                 });
 
-                setTimeout(()=> lock=false, 1500);
+                leituras++;
+                document.getElementById("d_leituras").innerText = leituras;
+
+                document.getElementById("status").innerText = "Salvo ✔";
+
+                setTimeout(() => trava = false, 1500);
             }
         }
     );
+}
+
+// ================= RESET =================
+function reset() {
+    trava = false;
+    document.getElementById("resultado").innerText = "";
+    document.getElementById("status").innerText = "Pronto";
 }
 
 // ================= INIT =================
