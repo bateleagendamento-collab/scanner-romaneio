@@ -4,135 +4,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
-<title>Controle de Estoque v4.0</title>
+<title>Controle de Estoque</title>
 
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
 <style>
 body {
     margin: 0;
-    font-family: "Inter", Arial, sans-serif;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: #e2e8f0;
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
     text-align: center;
 }
 
-h2 {
-    margin-top: 20px;
-    font-weight: 600;
+/* LOGIN */
+#loginBox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#loginBox input {
+    padding: 10px;
+    margin: 5px;
+    width: 220px;
 }
 
 /* DASHBOARD */
 #dashboard {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    padding: 15px;
-    max-width: 900px;
-    margin: auto;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    padding: 10px;
 }
 
 .card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    padding: 14px;
-    font-size: 14px;
-    transition: 0.2s;
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 10px;
 }
 
-.card:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.12);
+/* BOTÕES */
+button {
+    padding: 10px 14px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
 }
 
+.btn-green { background:#22c55e; color:white; }
+.btn-blue { background:#3b82f6; color:white; }
+.btn-yellow { background:#facc15; color:black; }
+
+/* VIDEO */
 video {
-    width: 95%;
-    max-width: 520px;
-    border-radius: 16px;
-    border: 2px solid rgba(255,255,255,0.1);
+    width: 90%;
+    max-width: 400px;
+    border-radius: 10px;
     margin-top: 10px;
 }
 
-button {
-    padding: 12px 16px;
-    margin: 6px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 500;
-}
-
-.btn-iniciar {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: white;
-}
-
-.btn-novo {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: white;
-}
-
-/* RESULTADO */
-#resultado {
-    margin-top: 15px;
-    font-size: 18px;
-    font-weight: 600;
-    color: #22c55e;
-}
-
-#status {
-    margin-top: 8px;
-    font-size: 14px;
-    color: #cbd5e1;
-}
-
-/* TABELA */
-table {
-    width: 95%;
-    margin: auto;
-    border-collapse: collapse;
-    background: rgba(255,255,255,0.05);
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-th, td {
-    padding: 10px;
-    font-size: 13px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-
-th {
-    background: rgba(255,255,255,0.08);
-}
-
-/* LOGIN OVERLAY */
-#loginBox {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(10px);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-#loginBox input {
-    padding: 12px;
-    margin: 6px;
-    width: 240px;
-    border-radius: 8px;
-    border: none;
-    outline: none;
+#scanStatus {
+    font-weight: bold;
 }
 </style>
 
@@ -142,57 +80,46 @@ th {
 
 <!-- LOGIN -->
 <div id="loginBox">
-    <h2>Login do Sistema</h2>
-
+    <h2>Login</h2>
     <input id="user" placeholder="Usuário">
     <input id="pass" type="password" placeholder="Senha">
-
-    <button onclick="fazerLogin()" style="background:#22c55e;color:white;padding:10px;border:none;border-radius:6px;">
-        Entrar
-    </button>
-
-    <p id="loginErro" style="color:red;"></p>
+    <button class="btn-green" onclick="login()">Entrar</button>
+    <p id="loginErro"></p>
 </div>
 
-<button onclick="logout()" style="position:fixed;top:10px;right:10px;background:red;color:white;padding:8px;border:none;border-radius:6px;">
-Sair
-</button>
-
-<h2>Controle de Logística</h2>
+<h2>Controle de Estoque</h2>
 
 <!-- DASHBOARD -->
 <div id="dashboard">
-
-<div class="card">📦 Leituras<br><strong id="d_leituras">0</strong></div>
-<div class="card">🟢 Status<br><strong id="d_status">Online</strong></div>
-<div class="card">📥 Offline<br><strong id="d_offline">0</strong></div>
-<div class="card">📴 Lista Offline<br><strong id="d_lista_offline">0</strong></div>
-<div class="card">⏱ Última<br><strong id="d_ultima">--</strong></div>
-
+    <div class="card">📦 Leituras<br><b id="d_leituras">0</b></div>
+    <div class="card">🟢 Status<br><b id="d_status">Parado</b></div>
+    <div class="card">📥 Offline<br><b id="d_offline">0</b></div>
+    <div class="card">⏱ Última<br><b id="d_ultima">--</b></div>
 </div>
 
+<!-- OPERAÇÃO -->
 <div>
-<label><input type="radio" name="operacao" value="Saída" checked> Saída</label>
-<label><input type="radio" name="operacao" value="Devolução"> Devolução</label>
+<label><input type="radio" name="op" value="Saída" checked> Saída</label>
+<label><input type="radio" name="op" value="Entrada"> Entrada</label>
 </div>
 
 <br>
 
-<button class="btn-iniciar" onclick="iniciarScanner()">Iniciar Scanner</button>
-<button class="btn-novo" onclick="novoScan()">Novo Scan</button>
+<!-- CONTROLES -->
+<button class="btn-green" onclick="toggleScanner()" id="btnScanner">▶ Iniciar</button>
+<button class="btn-yellow" onclick="toggleFlash()" id="btnFlash">🔦 Flash OFF</button>
 
-<br><br>
+<span id="scanStatus">🔴 Parado</span>
+
+<br>
 
 <video id="video" autoplay playsinline></video>
 
 <div id="resultado"></div>
-<div id="status"></div>
 
 <hr>
 
-<h3>Últimas Leituras</h3>
-
-<table>
+<table border="1" style="width:90%;margin:auto;">
 <thead>
 <tr>
 <th>Hora</th>
@@ -200,116 +127,75 @@ Sair
 <th>Código</th>
 </tr>
 </thead>
-<tbody id="tbHistorico"></tbody>
+<tbody id="tb"></tbody>
 </table>
 
 <script>
 
-/* ================= CONFIG ================= */
-const URL_API = "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec";
-
-/* ================= VARIÁVEIS ================= */
+/* ================= VAR ================= */
 let scanner;
-let codigoLido = false;
-let db = null;
-
-let leiturasHoje = 0;
-let ultimaLeitura = "--";
+let ativo = false;
+let travado = false;
+let track = null;
+let flash = false;
+let leituras = 0;
 
 /* ================= LOGIN ================= */
-function fazerLogin() {
+function login() {
 
-    const user = document.getElementById("user").value.trim();
-    const pass = document.getElementById("pass").value.trim();
+    const u = document.getElementById("user").value;
+    const p = document.getElementById("pass").value;
 
-    fetch(URL_API, {
-        method: "POST",
-        body: JSON.stringify({
-            tipo: "login",
-            usuario: user,
-            senha: pass
-        })
-    })
-    .then(r => r.json())
-    .then(data => {
-
-        if (data.ok) {
-            localStorage.setItem("logado", "true");
-            localStorage.setItem("usuario", data.nome);
-            document.getElementById("loginBox").style.display = "none";
-        } else {
-            document.getElementById("loginErro").innerText = "Usuário ou senha inválidos";
-        }
-
-    })
-    .catch(() => {
-        document.getElementById("loginErro").innerText = "Erro no servidor";
-    });
-}
-
-/* ================= LOGOUT ================= */
-function logout() {
-    localStorage.removeItem("logado");
-    localStorage.removeItem("usuario");
-    location.reload();
-}
-
-/* ================= OFFLINE ================= */
-function salvarOffline(dados) {
-
-    const lista = JSON.parse(localStorage.getItem("pendentes") || "[]");
-    lista.push(dados);
-    localStorage.setItem("pendentes", JSON.stringify(lista));
-
-    atualizarOfflineUI();
-}
-
-function atualizarOfflineUI() {
-
-    const lista = JSON.parse(localStorage.getItem("pendentes") || "[]");
-
-    document.getElementById("d_lista_offline").innerText = lista.length;
-    document.getElementById("d_offline").innerText = lista.length;
-}
-
-/* ================= SYNC ================= */
-async function sincronizarPendentes() {
-
-    const lista = JSON.parse(localStorage.getItem("pendentes") || "[]");
-
-    if (lista.length === 0) return;
-
-    const pendentes = [];
-
-    for (const item of lista) {
-
-        try {
-            await fetch(URL_API, {
-                method: "POST",
-                body: JSON.stringify(item)
-            });
-        } catch {
-            pendentes.push(item);
-        }
+    if (u === "admin" && p === "1234") {
+        document.getElementById("loginBox").style.display = "none";
+    } else {
+        document.getElementById("loginErro").innerText = "Login inválido";
     }
-
-    localStorage.setItem("pendentes", JSON.stringify(pendentes));
-
-    atualizarOfflineUI();
 }
 
-/* ================= DASHBOARD ================= */
-function atualizarDashboard() {
+/* ================= SOM + VIBRA ================= */
+function beep() {
 
-    document.getElementById("d_leituras").innerText = leiturasHoje;
-    document.getElementById("d_ultima").innerText = ultimaLeitura;
-    document.getElementById("d_status").innerText = navigator.onLine ? "Online" : "Offline";
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-    atualizarOfflineUI();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.frequency.value = 1000;
+    osc.start();
+
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+    osc.stop(ctx.currentTime + 0.15);
+
+    if (navigator.vibrate) navigator.vibrate(100);
+}
+
+/* ================= STATUS ================= */
+function setStatus(t, c) {
+    const el = document.getElementById("scanStatus");
+    el.innerText = t;
+    el.style.color = c;
 }
 
 /* ================= SCANNER ================= */
-function iniciarScanner() {
+function toggleScanner() {
+
+    if (ativo) {
+        stopScanner();
+    } else {
+        startScanner();
+    }
+}
+
+function startScanner() {
+
+    ativo = true;
+    travado = false;
+
+    document.getElementById("btnScanner").innerText = "⏸ Parar";
+    setStatus("🟢 Livre", "#22c55e");
 
     scanner = new ZXing.BrowserMultiFormatReader();
 
@@ -318,79 +204,89 @@ function iniciarScanner() {
         "video",
         async (result) => {
 
-            if (result && !codigoLido) {
+            if (!ativo) return;
 
-                codigoLido = true;
+            const video = document.getElementById("video");
+            if (video.srcObject && !track) {
+                track = video.srcObject.getVideoTracks()[0];
+            }
+
+            if (result && !travado) {
+
+                travado = true;
 
                 const codigo = result.text;
-                const operacao = document.querySelector('input[name="operacao"]:checked').value;
+                const op = document.querySelector('input[name="op"]:checked').value;
+                const hora = new Date().toLocaleTimeString();
 
-                const agora = new Date();
-                const hora = agora.toLocaleTimeString("pt-BR");
+                beep();
+                setStatus("🟡 Lendo...", "#facc15");
 
-                const dados = {
-                    id: crypto.randomUUID(),
-                    datahora: agora.toLocaleString("pt-BR"),
-                    operacao,
-                    codigo,
-                    usuario: localStorage.getItem("usuario") || "desconhecido"
-                };
+                leituras++;
+                document.getElementById("d_leituras").innerText = leituras;
+                document.getElementById("d_ultima").innerText = hora;
 
-                let ok = false;
+                addRow(hora, op, codigo);
 
-                try {
-                    await fetch(URL_API, {
-                        method: "POST",
-                        body: JSON.stringify(dados)
-                    });
-                    ok = true;
-                } catch {
-                    ok = false;
-                }
-
-                if (!ok) {
-                    salvarOffline(dados);
-                }
-
-                leiturasHoje++;
-                ultimaLeitura = hora;
-
-                adicionarHistorico(hora, operacao, codigo);
-                atualizarDashboard();
-
-                setTimeout(() => codigoLido = false, 1500);
+                setTimeout(() => {
+                    travado = false;
+                    setStatus("🟢 Livre", "#22c55e");
+                }, 1200);
             }
         }
     );
 }
 
-/* ================= HISTÓRICO ================= */
-function adicionarHistorico(hora, operacao, codigo) {
+function stopScanner() {
 
-    const tabela = document.getElementById("tbHistorico");
-    const linha = tabela.insertRow(0);
+    ativo = false;
 
-    linha.insertCell(0).innerText = hora;
-    linha.insertCell(1).innerText = operacao;
-    linha.insertCell(2).innerText = codigo;
+    try { scanner.reset(); } catch {}
 
-    while (tabela.rows.length > 20) {
-        tabela.deleteRow(tabela.rows.length - 1);
+    document.getElementById("btnScanner").innerText = "▶ Iniciar";
+    setStatus("🔴 Parado", "red");
+}
+
+/* ================= FLASH ================= */
+async function toggleFlash() {
+
+    const btn = document.getElementById("btnFlash");
+
+    try {
+
+        const video = document.getElementById("video");
+
+        if (!track && video.srcObject) {
+            track = video.srcObject.getVideoTracks()[0];
+        }
+
+        flash = !flash;
+
+        await track.applyConstraints({
+            advanced: [{ torch: flash }]
+        });
+
+        btn.innerText = flash ? "🔦 Flash ON" : "🔦 Flash OFF";
+
+    } catch {
+        alert("Flash não suportado neste dispositivo");
     }
 }
 
-/* ================= INIT ================= */
-window.addEventListener("load", () => {
+/* ================= TABELA ================= */
+function addRow(h, o, c) {
 
-    const user = localStorage.getItem("usuario");
+    const t = document.getElementById("tb");
+    const r = t.insertRow(0);
 
-    if (user) {
-        document.getElementById("loginBox").style.display = "none";
+    r.insertCell(0).innerText = h;
+    r.insertCell(1).innerText = o;
+    r.insertCell(2).innerText = c;
+
+    if (t.rows.length > 15) {
+        t.deleteRow(t.rows.length - 1);
     }
-
-    atualizarDashboard();
-    setInterval(sincronizarPendentes, 30000);
-});
+}
 
 </script>
 
