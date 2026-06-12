@@ -5,11 +5,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
+
+<!-- Fonte premium -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
 <title>Controle de Estoque v4.0</title>
 
 <script src="https://unpkg.com/@zxing/library@latest"></script>
-    
-</style>
+
+<style>
 body {
     margin: 0;
     font-family: "Inter", Arial, sans-serif;
@@ -74,7 +78,6 @@ button:hover {
     transform: scale(1.05);
 }
 
-/* CORES BOTÕES */
 .btn-iniciar {
     background: linear-gradient(135deg, #22c55e, #16a34a);
     color: white;
@@ -119,9 +122,8 @@ th, td {
 th {
     background: rgba(255,255,255,0.08);
 }
-    
 </style>
-    
+
 </head>
 
 <body>
@@ -171,8 +173,7 @@ Sair
 
 </div>
 
-</div>
-
+<!-- OPERAÇÃO -->
 <div>
 <label><input type="radio" name="operacao" value="Saída" checked> Saída</label>
 <label><input type="radio" name="operacao" value="Devolução"> Devolução</label>
@@ -221,10 +222,8 @@ function fazerLogin() {
     const pass = document.getElementById("pass").value;
 
     if (user === "admin" && pass === "1234") {
-
         localStorage.setItem("logado", "true");
         document.getElementById("loginBox").style.display = "none";
-
     } else {
         document.getElementById("loginErro").innerText = "Usuário ou senha inválidos";
     }
@@ -266,14 +265,12 @@ function abrirBanco() {
 
 function salvarOffline(dados) {
     if (!db) return;
-
     const tx = db.transaction("pendentes", "readwrite");
     tx.objectStore("pendentes").put(dados);
 }
 
 function removerPendente(id) {
     if (!db) return;
-
     const tx = db.transaction("pendentes", "readwrite");
     tx.objectStore("pendentes").delete(id);
 }
@@ -298,31 +295,23 @@ async function enviarServidor(dados) {
     }
 }
 
-// ================= DASHBOARD (SEM BUG) =================
+// ================= DASHBOARD =================
 function atualizarDashboard() {
 
     document.getElementById("d_leituras").innerText = leiturasHoje;
     document.getElementById("d_ultima").innerText = ultimaLeitura;
     document.getElementById("d_status").innerText = navigator.onLine ? "Online" : "Offline";
 
-    if (!db) {
-        document.getElementById("d_offline").innerText = "0";
-        return;
-    }
+    if (!db) return;
 
-    try {
+    const tx = db.transaction("pendentes", "readonly");
+    const store = tx.objectStore("pendentes");
 
-        const tx = db.transaction("pendentes", "readonly");
-        const store = tx.objectStore("pendentes");
-        const req = store.count();
+    const req = store.count();
 
-        req.onsuccess = () => {
-            document.getElementById("d_offline").innerText = req.result;
-        };
-
-    } catch (e) {
-        console.log(e);
-    }
+    req.onsuccess = () => {
+        document.getElementById("d_offline").innerText = req.result;
+    };
 }
 
 // ================= SINCRONIZA =================
@@ -346,33 +335,12 @@ async function sincronizarPendentes() {
     };
 }
 
-// ================= BEEP =================
-function tocarBip() {
-
-    const audio = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audio.createOscillator();
-    const gain = audio.createGain();
-
-    osc.connect(gain);
-    gain.connect(audio.destination);
-
-    osc.frequency.value = 1000;
-    osc.start();
-
-    gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.2);
-
-    osc.stop(audio.currentTime + 0.2);
-}
-
 // ================= SCANNER =================
 async function iniciarScanner() {
 
     document.getElementById("status").innerText = "Abrindo câmera...";
 
-    const hints = new Map();
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-    scanner = new ZXing.BrowserMultiFormatReader(hints);
+    scanner = new ZXing.BrowserMultiFormatReader();
 
     scanner.decodeFromConstraints(
         { video: { facingMode: "environment" } },
@@ -396,34 +364,21 @@ async function iniciarScanner() {
                     codigo
                 };
 
-                tocarBip();
-
-                document.getElementById("resultado").innerText = "Código: " + codigo;
-                document.getElementById("status").innerText = "Enviando...";
-
                 const ok = await enviarServidor(dados);
 
                 if (ok) {
-
                     leiturasHoje++;
                     ultimaLeitura = hora;
-
                     adicionarHistorico(hora, operacao, codigo);
-
                 } else {
-
                     salvarOffline(dados);
-
                     leiturasHoje++;
                     ultimaLeitura = hora;
-
                 }
 
                 atualizarDashboard();
 
-                setTimeout(() => {
-                    codigoLido = false;
-                }, 1500);
+                setTimeout(() => codigoLido = false, 1500);
             }
         }
     );
@@ -442,13 +397,6 @@ function adicionarHistorico(hora, operacao, codigo) {
     while (tabela.rows.length > 20) {
         tabela.deleteRow(tabela.rows.length - 1);
     }
-}
-
-// ================= NOVO SCAN =================
-function novoScan() {
-    codigoLido = false;
-    document.getElementById("resultado").innerText = "";
-    document.getElementById("status").innerText = "Pronto";
 }
 
 // ================= INIT =================
