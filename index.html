@@ -21,7 +21,6 @@ body {
     text-align: center;
 }
 
-/* TITULO */
 h2 {
     margin-top: 20px;
     font-weight: 600;
@@ -52,7 +51,6 @@ h2 {
     background: rgba(255, 255, 255, 0.12);
 }
 
-/* VIDEO */
 video {
     width: 95%;
     max-width: 520px;
@@ -61,7 +59,6 @@ video {
     margin-top: 10px;
 }
 
-/* BOTÕES */
 button {
     padding: 12px 16px;
     margin: 6px;
@@ -72,7 +69,6 @@ button {
     font-weight: 500;
 }
 
-/* CORES */
 .btn-iniciar {
     background: linear-gradient(135deg, #22c55e, #16a34a);
     color: white;
@@ -91,7 +87,6 @@ button {
     color: #22c55e;
 }
 
-/* STATUS */
 #status {
     margin-top: 8px;
     font-size: 14px;
@@ -118,7 +113,7 @@ th {
     background: rgba(255,255,255,0.08);
 }
 
-/* ================= LOGIN OVERLAY PROFISSIONAL ================= */
+/* LOGIN OVERLAY */
 #loginBox {
     position: fixed;
     inset: 0;
@@ -145,7 +140,7 @@ th {
 
 <body>
 
-<!-- LOGIN (TELA BLOQUEADORA) -->
+<!-- LOGIN -->
 <div id="loginBox">
     <h2>Login do Sistema</h2>
 
@@ -171,11 +166,11 @@ Sair
 <div class="card">📦 Leituras<br><strong id="d_leituras">0</strong></div>
 <div class="card">🟢 Status<br><strong id="d_status">Online</strong></div>
 <div class="card">📥 Offline<br><strong id="d_offline">0</strong></div>
+<div class="card">📴 Lista Offline<br><strong id="d_lista_offline">0</strong></div>
 <div class="card">⏱ Última<br><strong id="d_ultima">--</strong></div>
 
 </div>
 
-<!-- OPERAÇÃO -->
 <div>
 <label><input type="radio" name="operacao" value="Saída" checked> Saída</label>
 <label><input type="radio" name="operacao" value="Devolução"> Devolução</label>
@@ -221,7 +216,7 @@ let db = null;
 let leiturasHoje = 0;
 let ultimaLeitura = "--";
 
-/* ================= LOGIN REAL ================= */
+/* ================= LOGIN ================= */
 function fazerLogin() {
 
     const user = document.getElementById("user").value.trim();
@@ -239,12 +234,9 @@ function fazerLogin() {
     .then(data => {
 
         if (data.ok) {
-
             localStorage.setItem("logado", "true");
             localStorage.setItem("usuario", data.nome);
-
             document.getElementById("loginBox").style.display = "none";
-
         } else {
             document.getElementById("loginErro").innerText = "Usuário ou senha inválidos";
         }
@@ -262,35 +254,22 @@ function logout() {
     location.reload();
 }
 
-/* ================= DB OFFLINE ================= */
-function abrirBanco() {
-
-    return new Promise((resolve, reject) => {
-
-        const request = indexedDB.open("EstoqueDB", 1);
-
-        request.onupgradeneeded = (event) => {
-            db = event.target.result;
-
-            if (!db.objectStoreNames.contains("pendentes")) {
-                db.createObjectStore("pendentes", { keyPath: "id" });
-            }
-        };
-
-        request.onsuccess = (event) => {
-            db = event.target.result;
-            resolve();
-        };
-
-        request.onerror = reject;
-    });
-}
-
 /* ================= OFFLINE ================= */
 function salvarOffline(dados) {
+
     const lista = JSON.parse(localStorage.getItem("pendentes") || "[]");
     lista.push(dados);
     localStorage.setItem("pendentes", JSON.stringify(lista));
+
+    atualizarOfflineUI();
+}
+
+function atualizarOfflineUI() {
+
+    const lista = JSON.parse(localStorage.getItem("pendentes") || "[]");
+
+    document.getElementById("d_lista_offline").innerText = lista.length;
+    document.getElementById("d_offline").innerText = lista.length;
 }
 
 /* ================= SYNC ================= */
@@ -300,38 +279,33 @@ async function sincronizarPendentes() {
 
     if (lista.length === 0) return;
 
+    const pendentes = [];
+
     for (const item of lista) {
-        await fetch(URL_API, {
-            method: "POST",
-            body: JSON.stringify(item)
-        });
+
+        try {
+            await fetch(URL_API, {
+                method: "POST",
+                body: JSON.stringify(item)
+            });
+        } catch {
+            pendentes.push(item);
+        }
     }
 
-    localStorage.removeItem("pendentes");
+    localStorage.setItem("pendentes", JSON.stringify(pendentes));
+
+    atualizarOfflineUI();
 }
 
 /* ================= DASHBOARD ================= */
 function atualizarDashboard() {
 
-    const el1 = document.getElementById("d_leituras");
-    const el2 = document.getElementById("d_ultima");
-    const el3 = document.getElementById("d_status");
+    document.getElementById("d_leituras").innerText = leiturasHoje;
+    document.getElementById("d_ultima").innerText = ultimaLeitura;
+    document.getElementById("d_status").innerText = navigator.onLine ? "Online" : "Offline";
 
-    if (!el1 || !el2 || !el3) return;
-
-    el1.innerText = leiturasHoje;
-    el2.innerText = ultimaLeitura;
-    el3.innerText = navigator.onLine ? "Online" : "Offline";
-
-    if (!db) return;
-
-    const tx = db.transaction("pendentes", "readonly");
-    const store = tx.objectStore("pendentes");
-    const req = store.count();
-
-    req.onsuccess = () => {
-        document.getElementById("d_offline").innerText = req.result;
-    };
+    atualizarOfflineUI();
 }
 
 /* ================= SCANNER ================= */
@@ -350,7 +324,6 @@ function iniciarScanner() {
 
                 const codigo = result.text;
                 const operacao = document.querySelector('input[name="operacao"]:checked').value;
-                const usuario = localStorage.getItem("usuario") || "desconhecido";
 
                 const agora = new Date();
                 const hora = agora.toLocaleTimeString("pt-BR");
@@ -360,30 +333,29 @@ function iniciarScanner() {
                     datahora: agora.toLocaleString("pt-BR"),
                     operacao,
                     codigo,
-                    usuario
+                    usuario: localStorage.getItem("usuario") || "desconhecido"
                 };
 
-                const ok = await fetch(URL_API, {
-                    method: "POST",
-                    body: JSON.stringify(dados)
-                })
-                .then(r => r.json())
-                .then(() => true)
-                .catch(() => false);
+                let ok = false;
 
-                if (ok) {
-
-                    leiturasHoje++;
-                    ultimaLeitura = hora;
-                    adicionarHistorico(hora, operacao, codigo);
-
-                } else {
-
-                    salvarOffline(dados);
-                    leiturasHoje++;
-                    ultimaLeitura = hora;
+                try {
+                    await fetch(URL_API, {
+                        method: "POST",
+                        body: JSON.stringify(dados)
+                    });
+                    ok = true;
+                } catch {
+                    ok = false;
                 }
 
+                if (!ok) {
+                    salvarOffline(dados);
+                }
+
+                leiturasHoje++;
+                ultimaLeitura = hora;
+
+                adicionarHistorico(hora, operacao, codigo);
                 atualizarDashboard();
 
                 setTimeout(() => codigoLido = false, 1500);
@@ -408,7 +380,7 @@ function adicionarHistorico(hora, operacao, codigo) {
 }
 
 /* ================= INIT ================= */
-window.addEventListener("load", async () => {
+window.addEventListener("load", () => {
 
     const user = localStorage.getItem("usuario");
 
@@ -416,17 +388,8 @@ window.addEventListener("load", async () => {
         document.getElementById("loginBox").style.display = "none";
     }
 
-    await abrirBanco();
-
     atualizarDashboard();
-
-    setInterval(atualizarDashboard, 5000);
     setInterval(sincronizarPendentes, 30000);
-
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js');
-    }
-
 });
 
 </script>
