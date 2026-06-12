@@ -21,8 +21,13 @@ body {
     text-align: center;
 }
 
-h2 { margin-top: 20px; font-weight: 600; }
+/* TITULO */
+h2 {
+    margin-top: 20px;
+    font-weight: 600;
+}
 
+/* DASHBOARD */
 #dashboard {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -47,6 +52,7 @@ h2 { margin-top: 20px; font-weight: 600; }
     background: rgba(255, 255, 255, 0.12);
 }
 
+/* VIDEO */
 video {
     width: 95%;
     max-width: 520px;
@@ -55,6 +61,7 @@ video {
     margin-top: 10px;
 }
 
+/* BOTÕES */
 button {
     padding: 12px 16px;
     margin: 6px;
@@ -65,6 +72,7 @@ button {
     font-weight: 500;
 }
 
+/* CORES */
 .btn-iniciar {
     background: linear-gradient(135deg, #22c55e, #16a34a);
     color: white;
@@ -75,6 +83,7 @@ button {
     color: white;
 }
 
+/* RESULTADO */
 #resultado {
     margin-top: 15px;
     font-size: 18px;
@@ -82,12 +91,14 @@ button {
     color: #22c55e;
 }
 
+/* STATUS */
 #status {
     margin-top: 8px;
     font-size: 14px;
     color: #cbd5e1;
 }
 
+/* TABELA */
 table {
     width: 95%;
     margin: auto;
@@ -106,13 +117,35 @@ th, td {
 th {
     background: rgba(255,255,255,0.08);
 }
+
+/* ================= LOGIN OVERLAY PROFISSIONAL ================= */
+#loginBox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+#loginBox input {
+    padding: 12px;
+    margin: 6px;
+    width: 240px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+}
 </style>
 
 </head>
 
 <body>
 
-<!-- LOGIN -->
+<!-- LOGIN (TELA BLOQUEADORA) -->
 <div id="loginBox">
     <h2>Login do Sistema</h2>
 
@@ -135,28 +168,14 @@ Sair
 <!-- DASHBOARD -->
 <div id="dashboard">
 
-<div class="card">
-📦 Leituras<br>
-<strong id="d_leituras">0</strong>
-</div>
-
-<div class="card">
-🟢 Status<br>
-<strong id="d_status">Online</strong>
-</div>
-
-<div class="card">
-📥 Offline<br>
-<strong id="d_offline">0</strong>
-</div>
-
-<div class="card">
-⏱ Última<br>
-<strong id="d_ultima">--</strong>
-</div>
+<div class="card">📦 Leituras<br><strong id="d_leituras">0</strong></div>
+<div class="card">🟢 Status<br><strong id="d_status">Online</strong></div>
+<div class="card">📥 Offline<br><strong id="d_offline">0</strong></div>
+<div class="card">⏱ Última<br><strong id="d_ultima">--</strong></div>
 
 </div>
 
+<!-- OPERAÇÃO -->
 <div>
 <label><input type="radio" name="operacao" value="Saída" checked> Saída</label>
 <label><input type="radio" name="operacao" value="Devolução"> Devolução</label>
@@ -267,8 +286,8 @@ function abrirBanco() {
     });
 }
 
+/* ================= OFFLINE ================= */
 function salvarOffline(dados) {
-
     const lista = JSON.parse(localStorage.getItem("pendentes") || "[]");
     lista.push(dados);
     localStorage.setItem("pendentes", JSON.stringify(lista));
@@ -321,7 +340,7 @@ function iniciarScanner() {
     scanner = new ZXing.BrowserMultiFormatReader();
 
     scanner.decodeFromConstraints(
-        { video: { facingMode: { ideal: "environment" } } },
+        { video: { facingMode: "environment" } },
         "video",
         async (result) => {
 
