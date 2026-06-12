@@ -78,42 +78,34 @@ let lock = false;
 // ================= LOGIN =================
 async function login() {
 
-    try {
+  try {
 
-        const res = await fetch(URL_API, {
-            method: "POST",
-            body: JSON.stringify({
-                tipo: "login",
-                usuario: document.getElementById("user").value,
-                senha: document.getElementById("pass").value
-            })
-        });
+    const res = await fetch(URL_API, {
+      method: "POST",
+      body: JSON.stringify({
+        tipo: "login",
+        usuario: document.getElementById("user").value,
+        senha: document.getElementById("pass").value
+      })
+    });
 
-        const text = await res.text();
+    const data = await res.json();
 
-        console.log("RESPOSTA RAW:", text);
+    if (data.ok) {
 
-        const data = JSON.parse(text);
+      localStorage.setItem("usuario", data.nome);
 
-        if (data.ok) {
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("usuario").innerText = data.nome;
 
-            localStorage.setItem("usuario", data.nome);
-
-            document.getElementById("loginBox").style.display = "none";
-            document.getElementById("usuario").innerText = data.nome;
-
-        } else {
-            document.getElementById("erro").innerText =
-                "Login inválido: " + (data.error || "");
-        }
-
-    } catch (err) {
-
-        console.log("ERRO COMPLETO:", err);
-
-        document.getElementById("erro").innerText =
-            "Erro servidor (veja console)";
+    } else {
+      document.getElementById("erro").innerText = "Login inválido";
     }
+
+  } catch (err) {
+    document.getElementById("erro").innerText = "Erro servidor";
+    console.log(err);
+  }
 }
 // ================= SCANNER =================
 function start() {
