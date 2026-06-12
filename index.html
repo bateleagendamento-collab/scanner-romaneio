@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 
-<!-- Fonte premium -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
 <title>Controle de Estoque v4.0</title>
@@ -22,13 +21,8 @@ body {
     text-align: center;
 }
 
-/* TITULO */
-h2 {
-    margin-top: 20px;
-    font-weight: 600;
-}
+h2 { margin-top: 20px; font-weight: 600; }
 
-/* DASHBOARD */
 #dashboard {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -53,7 +47,6 @@ h2 {
     background: rgba(255, 255, 255, 0.12);
 }
 
-/* VIDEO */
 video {
     width: 95%;
     max-width: 520px;
@@ -62,7 +55,6 @@ video {
     margin-top: 10px;
 }
 
-/* BOTÕES */
 button {
     padding: 12px 16px;
     margin: 6px;
@@ -71,11 +63,6 @@ button {
     cursor: pointer;
     font-size: 15px;
     font-weight: 500;
-    transition: 0.2s;
-}
-
-button:hover {
-    transform: scale(1.05);
 }
 
 .btn-iniciar {
@@ -88,7 +75,6 @@ button:hover {
     color: white;
 }
 
-/* RESULTADO */
 #resultado {
     margin-top: 15px;
     font-size: 18px;
@@ -96,14 +82,12 @@ button:hover {
     color: #22c55e;
 }
 
-/* STATUS */
 #status {
     margin-top: 8px;
     font-size: 14px;
     color: #cbd5e1;
 }
 
-/* TABELA */
 table {
     width: 95%;
     margin: auto;
@@ -135,7 +119,7 @@ th {
     <input id="user" placeholder="Usuário">
     <input id="pass" type="password" placeholder="Senha">
 
-    <button onclick="fazerLogin()" style="background:#22c55e;color:white;padding:10px;border:none;">
+    <button onclick="fazerLogin()" style="background:#22c55e;color:white;padding:10px;border:none;border-radius:6px;">
         Entrar
     </button>
 
@@ -173,7 +157,6 @@ Sair
 
 </div>
 
-<!-- OPERAÇÃO -->
 <div>
 <label><input type="radio" name="operacao" value="Saída" checked> Saída</label>
 <label><input type="radio" name="operacao" value="Devolução"> Devolução</label>
@@ -208,6 +191,10 @@ Sair
 
 <script>
 
+/* ================= CONFIG ================= */
+const URL_API = "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec";
+
+/* ================= VARIÁVEIS ================= */
 let scanner;
 let codigoLido = false;
 let db = null;
@@ -215,33 +202,50 @@ let db = null;
 let leiturasHoje = 0;
 let ultimaLeitura = "--";
 
-// ================= LOGIN =================
+/* ================= LOGIN REAL ================= */
 function fazerLogin() {
 
-    const user = document.getElementById("user").value;
-    const pass = document.getElementById("pass").value;
+    const user = document.getElementById("user").value.trim();
+    const pass = document.getElementById("pass").value.trim();
 
-    if (user === "admin" && pass === "1234") {
-        localStorage.setItem("logado", "true");
-        document.getElementById("loginBox").style.display = "none";
-    } else {
-        document.getElementById("loginErro").innerText = "Usuário ou senha inválidos";
-    }
+    fetch(URL_API, {
+        method: "POST",
+        body: JSON.stringify({
+            tipo: "login",
+            usuario: user,
+            senha: pass
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+
+        if (data.ok) {
+
+            localStorage.setItem("logado", "true");
+            localStorage.setItem("usuario", data.nome);
+
+            document.getElementById("loginBox").style.display = "none";
+
+        } else {
+            document.getElementById("loginErro").innerText = "Usuário ou senha inválidos";
+        }
+
+    })
+    .catch(() => {
+        document.getElementById("loginErro").innerText = "Erro no servidor";
+    });
 }
 
-function verificarLogin() {
-    if (localStorage.getItem("logado") === "true") {
-        document.getElementById("loginBox").style.display = "none";
-    }
-}
-
+/* ================= LOGOUT ================= */
 function logout() {
     localStorage.removeItem("logado");
+    localStorage.removeItem("usuario");
     location.reload();
 }
 
-// ================= DB =================
+/* ================= DB OFFLINE ================= */
 function abrirBanco() {
+
     return new Promise((resolve, reject) => {
 
         const request = indexedDB.open("EstoqueDB", 1);
@@ -264,49 +268,46 @@ function abrirBanco() {
 }
 
 function salvarOffline(dados) {
-    if (!db) return;
-    const tx = db.transaction("pendentes", "readwrite");
-    tx.objectStore("pendentes").put(dados);
+
+    const lista = JSON.parse(localStorage.getItem("pendentes") || "[]");
+    lista.push(dados);
+    localStorage.setItem("pendentes", JSON.stringify(lista));
 }
 
-function removerPendente(id) {
-    if (!db) return;
-    const tx = db.transaction("pendentes", "readwrite");
-    tx.objectStore("pendentes").delete(id);
-}
+/* ================= SYNC ================= */
+async function sincronizarPendentes() {
 
-// ================= API =================
-async function enviarServidor(dados) {
+    const lista = JSON.parse(localStorage.getItem("pendentes") || "[]");
 
-    try {
+    if (lista.length === 0) return;
 
-        const res = await fetch("https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec", {
+    for (const item of lista) {
+        await fetch(URL_API, {
             method: "POST",
-            body: JSON.stringify(dados)
+            body: JSON.stringify(item)
         });
-
-        if (!res.ok) throw new Error();
-
-        await res.text();
-        return true;
-
-    } catch {
-        return false;
     }
+
+    localStorage.removeItem("pendentes");
 }
 
-// ================= DASHBOARD =================
+/* ================= DASHBOARD ================= */
 function atualizarDashboard() {
 
-    document.getElementById("d_leituras").innerText = leiturasHoje;
-    document.getElementById("d_ultima").innerText = ultimaLeitura;
-    document.getElementById("d_status").innerText = navigator.onLine ? "Online" : "Offline";
+    const el1 = document.getElementById("d_leituras");
+    const el2 = document.getElementById("d_ultima");
+    const el3 = document.getElementById("d_status");
+
+    if (!el1 || !el2 || !el3) return;
+
+    el1.innerText = leiturasHoje;
+    el2.innerText = ultimaLeitura;
+    el3.innerText = navigator.onLine ? "Online" : "Offline";
 
     if (!db) return;
 
     const tx = db.transaction("pendentes", "readonly");
     const store = tx.objectStore("pendentes");
-
     const req = store.count();
 
     req.onsuccess = () => {
@@ -314,36 +315,13 @@ function atualizarDashboard() {
     };
 }
 
-// ================= SINCRONIZA =================
-async function sincronizarPendentes() {
-
-    if (!navigator.onLine || !db) return;
-
-    const tx = db.transaction("pendentes", "readonly");
-    const store = tx.objectStore("pendentes");
-
-    const req = store.getAll();
-
-    req.onsuccess = async () => {
-
-        for (const item of req.result) {
-
-            const ok = await enviarServidor(item);
-
-            if (ok) removerPendente(item.id);
-        }
-    };
-}
-
-// ================= SCANNER =================
-async function iniciarScanner() {
-
-    document.getElementById("status").innerText = "Abrindo câmera...";
+/* ================= SCANNER ================= */
+function iniciarScanner() {
 
     scanner = new ZXing.BrowserMultiFormatReader();
 
     scanner.decodeFromConstraints(
-        { video: { facingMode: "environment" } },
+        { video: { facingMode: { ideal: "environment" } } },
         "video",
         async (result) => {
 
@@ -353,6 +331,7 @@ async function iniciarScanner() {
 
                 const codigo = result.text;
                 const operacao = document.querySelector('input[name="operacao"]:checked').value;
+                const usuario = localStorage.getItem("usuario") || "desconhecido";
 
                 const agora = new Date();
                 const hora = agora.toLocaleTimeString("pt-BR");
@@ -361,16 +340,26 @@ async function iniciarScanner() {
                     id: crypto.randomUUID(),
                     datahora: agora.toLocaleString("pt-BR"),
                     operacao,
-                    codigo
+                    codigo,
+                    usuario
                 };
 
-                const ok = await enviarServidor(dados);
+                const ok = await fetch(URL_API, {
+                    method: "POST",
+                    body: JSON.stringify(dados)
+                })
+                .then(r => r.json())
+                .then(() => true)
+                .catch(() => false);
 
                 if (ok) {
+
                     leiturasHoje++;
                     ultimaLeitura = hora;
                     adicionarHistorico(hora, operacao, codigo);
+
                 } else {
+
                     salvarOffline(dados);
                     leiturasHoje++;
                     ultimaLeitura = hora;
@@ -384,7 +373,7 @@ async function iniciarScanner() {
     );
 }
 
-// ================= HISTÓRICO =================
+/* ================= HISTÓRICO ================= */
 function adicionarHistorico(hora, operacao, codigo) {
 
     const tabela = document.getElementById("tbHistorico");
@@ -399,10 +388,14 @@ function adicionarHistorico(hora, operacao, codigo) {
     }
 }
 
-// ================= INIT =================
+/* ================= INIT ================= */
 window.addEventListener("load", async () => {
 
-    verificarLogin();
+    const user = localStorage.getItem("usuario");
+
+    if (user) {
+        document.getElementById("loginBox").style.display = "none";
+    }
 
     await abrirBanco();
 
