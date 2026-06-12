@@ -4,8 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Controle de Estoque Pro</title>
+<title>Controle de Estoque v4.0</title>
 
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -13,8 +12,8 @@
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #0f172a, #111827);
-    color: #e5e7eb;
+    background: #0f172a;
+    color: #e2e8f0;
     text-align: center;
 }
 
@@ -30,7 +29,7 @@ body {
 }
 
 input {
-    padding: 12px;
+    padding: 10px;
     margin: 5px;
     width: 220px;
     border-radius: 8px;
@@ -40,31 +39,23 @@ input {
 /* BOTÕES */
 button {
     padding: 12px 16px;
-    margin: 6px;
+    margin: 5px;
     border: none;
     border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
 }
 
-.btn {
-    background: #22c55e;
-    color: white;
-}
-
-.btn2 {
-    background: #3b82f6;
-    color: white;
-}
+.btn1 { background: #22c55e; color: white; }
+.btn2 { background: #3b82f6; color: white; }
 
 /* DASHBOARD */
 .dashboard {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
-    padding: 10px;
     max-width: 500px;
-    margin: auto;
+    margin: 15px auto;
 }
 
 .card {
@@ -83,7 +74,6 @@ video {
 
 #status {
     margin-top: 10px;
-    font-size: 14px;
     color: #93c5fd;
 }
 
@@ -100,17 +90,13 @@ video {
 
 <!-- LOGIN -->
 <div id="loginBox">
-    <h2>🔐 Login Sistema</h2>
-
+    <h2>🔐 Login</h2>
     <input id="user" placeholder="Usuário">
     <input id="pass" type="password" placeholder="Senha">
-
-    <button class="btn" onclick="login()">Entrar</button>
-
+    <button class="btn1" onclick="login()">Entrar</button>
     <p id="erro"></p>
 </div>
 
-<!-- USUÁRIO -->
 <h3>Usuário: <span id="usuario">--</span></h3>
 
 <!-- DASHBOARD -->
@@ -136,8 +122,8 @@ video {
 
 <br>
 
-<button class="btn" onclick="startScanner()">📷 Iniciar Scanner</button>
-<button class="btn2" onclick="reset()">Novo Scan</button>
+<button class="btn1" onclick="startScanner()">📷 Scanner</button>
+<button class="btn2" onclick="novoScan()">Novo Scan</button>
 
 <br>
 
@@ -148,7 +134,7 @@ video {
 
 <script>
 
-const URL_API = "https://script.google.com/macros/s/AKfycbwZX9KTf4-Az3CysVSGsYpykKwbCk1CHsBlNgQmgF511_i-UGPPw2ypQXO4rg0tVc2_/exec";
+const URL_API = "SUA_URL_AQUI";
 
 let scanner;
 let trava = false;
@@ -163,8 +149,8 @@ async function login() {
             method: "POST",
             body: JSON.stringify({
                 tipo: "login",
-                usuario: document.getElementById("user").value,
-                senha: document.getElementById("pass").value
+                usuario: document.getElementById("user").value.trim(),
+                senha: document.getElementById("pass").value.trim()
             })
         });
 
@@ -208,21 +194,26 @@ function startScanner() {
                 document.getElementById("resultado").innerText = "Código: " + codigo;
                 document.getElementById("status").innerText = "Enviando...";
 
-                await fetch(URL_API, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        id: crypto.randomUUID(),
-                        datahora: new Date().toLocaleString(),
-                        operacao,
-                        codigo,
-                        usuario
-                    })
-                });
+                try {
 
-                leituras++;
-                document.getElementById("d_leituras").innerText = leituras;
+                    await fetch(URL_API, {
+                        method: "POST",
+                        body: JSON.stringify({
+                            id: crypto.randomUUID(),
+                            datahora: new Date().toLocaleString(),
+                            operacao,
+                            codigo,
+                            usuario
+                        })
+                    });
 
-                document.getElementById("status").innerText = "Salvo ✔";
+                    leituras++;
+                    document.getElementById("d_leituras").innerText = leituras;
+                    document.getElementById("status").innerText = "Salvo ✔";
+
+                } catch {
+                    document.getElementById("status").innerText = "Erro ao enviar";
+                }
 
                 setTimeout(() => trava = false, 1500);
             }
@@ -231,7 +222,7 @@ function startScanner() {
 }
 
 // ================= RESET =================
-function reset() {
+function novoScan() {
     trava = false;
     document.getElementById("resultado").innerText = "";
     document.getElementById("status").innerText = "Pronto";
