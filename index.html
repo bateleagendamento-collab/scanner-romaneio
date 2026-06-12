@@ -4,54 +4,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Controle de Estoque Pro</title>
+<title>Controle Pro</title>
 
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
 <style>
 body {
-    margin: 0;
+    margin:0;
     font-family: Arial;
-    background: #0f172a;
-    color: white;
-    text-align: center;
+    background:#0f172a;
+    color:white;
+    text-align:center;
 }
 
 #loginBox {
-    position: fixed;
-    inset: 0;
-    background: #111827;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    position:fixed;
+    inset:0;
+    background:#111827;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
 }
 
 input {
-    padding: 10px;
-    margin: 5px;
-    width: 200px;
+    padding:10px;
+    margin:5px;
+    width:200px;
 }
 
 button {
-    padding: 10px;
-    margin: 5px;
-    border: 0;
-    border-radius: 6px;
-}
-
-.card {
-    background: #1f2937;
-    padding: 10px;
-    margin: 5px;
-    border-radius: 8px;
+    padding:10px;
+    margin:5px;
+    border:none;
+    border-radius:6px;
 }
 
 video {
-    width: 90%;
-    max-width: 500px;
-    border-radius: 10px;
+    width:90%;
+    max-width:500px;
 }
 </style>
 
@@ -59,46 +50,33 @@ video {
 
 <body>
 
-<!-- LOGIN -->
 <div id="loginBox">
-    <h2>Login</h2>
-
+    <h2>Login Seguro</h2>
     <input id="user" placeholder="Usuário">
     <input id="pass" type="password" placeholder="Senha">
-
-    <button onclick="fazerLogin()">Entrar</button>
-
-    <p id="loginErro"></p>
+    <button onclick="login()">Entrar</button>
+    <p id="erro"></p>
 </div>
 
-<h3>Usuário: <span id="usuarioLogado">--</span></h3>
+<h3>Usuário: <span id="usuario">--</span></h3>
 
-<h2>Controle de Estoque</h2>
-
-<label><input type="radio" name="operacao" value="Saída" checked> Saída</label>
-<label><input type="radio" name="operacao" value="Devolução"> Devolução</label>
-
-<br><br>
-
-<button onclick="iniciarScanner()">Iniciar Scanner</button>
-<button onclick="novoScan()">Novo Scan</button>
+<button onclick="start()">Iniciar Scanner</button>
 
 <br><br>
 
 <video id="video" autoplay playsinline></video>
 
-<div id="resultado"></div>
-<div id="status"></div>
+<div id="result"></div>
 
 <script>
 
-let scanner;
-let codigoLido = false;
+const URL_API = "SUA_URL_AQUI";
 
-const URL_API = "https://script.google.com/macros/s/AKfycbzhyTVyyuIYiMe83BRMs_eyJ4TLpJwdNv4f2T2j6qaqDZiamUOuQRrFa_HYsooKkQgN2g/exec";
+let scanner;
+let lock = false;
 
 // ================= LOGIN =================
-async function fazerLogin() {
+async function login() {
 
     const user = document.getElementById("user").value;
     const pass = document.getElementById("pass").value;
@@ -106,91 +84,78 @@ async function fazerLogin() {
     try {
 
         const res = await fetch(URL_API, {
-            method: "POST",
+            method:"POST",
             body: JSON.stringify({
-                tipo: "login",
-                usuario: user,
-                senha: pass
+                tipo:"login",
+                usuario:user,
+                senha:pass
             })
         });
 
         const data = await res.json();
-
-        console.log("RESPOSTA:", data);
 
         if (data.ok) {
 
             localStorage.setItem("usuario", data.nome);
 
             document.getElementById("loginBox").style.display = "none";
-            document.getElementById("usuarioLogado").innerText = data.nome;
+            document.getElementById("usuario").innerText = data.nome;
 
         } else {
-            document.getElementById("loginErro").innerText =
-                "Login inválido";
+            document.getElementById("erro").innerText = "Login inválido";
         }
 
-    } catch (err) {
-
-        console.log("ERRO FETCH:", err);
-
-        document.getElementById("loginErro").innerText =
-            "Falha ao conectar com o servidor";
+    } catch {
+        document.getElementById("erro").innerText = "Erro servidor";
     }
 }
+
 // ================= SCANNER =================
-async function iniciarScanner() {
+function start() {
 
     scanner = new ZXing.BrowserMultiFormatReader();
 
     scanner.decodeFromConstraints(
-        { video: { facingMode: "environment" } },
+        { video: { facingMode:"environment" } },
         "video",
         async (result) => {
 
-            if (result && !codigoLido) {
+            if (result && !lock) {
 
-                codigoLido = true;
+                lock = true;
 
                 const codigo = result.text;
-                const operacao = document.querySelector('input[name="operacao"]:checked').value;
+                const usuario = localStorage.getItem("usuario");
 
-                const agora = new Date();
-
-                const dados = {
-                    id: crypto.randomUUID(),
-                    datahora: agora.toLocaleString("pt-BR"),
-                    operacao,
-                    codigo,
-                    usuario: localStorage.getItem("usuario")
-                };
-
-                document.getElementById("resultado").innerText = codigo;
-                document.getElementById("status").innerText = "Enviando...";
+                document.getElementById("result").innerText = codigo;
 
                 await fetch(URL_API, {
-                    method: "POST",
-                    body: JSON.stringify(dados)
+                    method:"POST",
+                    body: JSON.stringify({
+                        id: crypto.randomUUID(),
+                        datahora: new Date().toLocaleString(),
+                        operacao:"Saída",
+                        codigo,
+                        usuario
+                    })
                 });
 
-                document.getElementById("status").innerText = "Salvo ✔";
-
-                setTimeout(() => codigoLido = false, 1500);
+                setTimeout(()=> lock=false, 1500);
             }
         }
     );
 }
 
 // ================= INIT =================
-window.addEventListener("load", () => {
+window.onload = () => {
 
     const user = localStorage.getItem("usuario");
 
     if (user) {
         document.getElementById("loginBox").style.display = "none";
-        document.getElementById("usuarioLogado").innerText = user;
+        document.getElementById("usuario").innerText = user;
     }
-});
+};
 
 </script>
 
