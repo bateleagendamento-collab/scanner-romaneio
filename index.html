@@ -182,6 +182,30 @@ let scanner;
 let codigoLido = false;
 let totalLeituras = 0;
 let db;
+let leiturasHoje = 0;
+let ultimaLeitura = "--";
+
+function atualizarDashboard() {
+
+    document.getElementById("d_leituras").innerText = leiturasHoje;
+
+    document.getElementById("d_ultima").innerText = ultimaLeitura;
+
+    const offlineCount = db
+        ? db.transaction("pendentes", "readonly")
+            .objectStore("pendentes")
+            .count()
+        : null;
+
+    if (offlineCount) {
+        offlineCount.onsuccess = () => {
+            document.getElementById("d_offline").innerText = offlineCount.result;
+        };
+    }
+
+    document.getElementById("d_status").innerText =
+        navigator.onLine ? "Online" : "Offline";
+}
 
 // ================= LOGIN =================
 function fazerLogin() {
@@ -357,6 +381,8 @@ async function iniciarScanner() {
                 if (ok) {
 
                     totalLeituras++;
+                    ultimaLeitura = hora;
+                    atualizarDashboard();
 
                     document.getElementById("contador").innerHTML =
                         "Leituras: " + totalLeituras;
@@ -372,6 +398,9 @@ async function iniciarScanner() {
                         "Offline: salvo localmente";
 
                     salvarOffline(dados);
+                    leiturasHoje++;
+                    ultimaLeitura = hora;
+                    atualizarDashboard();
                 }
 
                 setTimeout(() => {
@@ -417,6 +446,11 @@ window.addEventListener("load", async () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js');
     }
+      // 🔥 INICIALIZA DASHBOARD
+    atualizarDashboard();
+
+    // 🔁 ATUALIZA INDICADORES AUTOMATICAMENTE
+    setInterval(atualizarDashboard, 5000);
 
 });
 
