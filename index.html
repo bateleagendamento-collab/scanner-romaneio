@@ -103,26 +103,43 @@ async function fazerLogin() {
     const user = document.getElementById("user").value;
     const pass = document.getElementById("pass").value;
 
-    const res = await fetch(URL_API, {
-        method: "POST",
-        body: JSON.stringify({
-            tipo: "login",
-            usuario: user,
-            senha: pass
-        })
-    });
+    try {
 
-    const data = await res.json();
+        const res = await fetch(URL_API, {
+            method: "POST",
+            body: JSON.stringify({
+                tipo: "login",
+                usuario: user,
+                senha: pass
+            })
+        });
 
-    if (data.ok) {
+        const text = await res.text(); // 👈 importante
 
-        localStorage.setItem("usuario", data.nome);
+        let data;
 
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("usuarioLogado").innerText = data.nome;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error("Resposta inválida do servidor: " + text);
+        }
 
-    } else {
-        document.getElementById("loginErro").innerText = "Login inválido";
+        if (data.ok) {
+
+            localStorage.setItem("usuario", data.nome);
+
+            document.getElementById("loginBox").style.display = "none";
+            document.getElementById("usuarioLogado").innerText = data.nome;
+
+        } else {
+            document.getElementById("loginErro").innerText = "Usuário ou senha inválidos";
+        }
+
+    } catch (err) {
+
+        console.log(err);
+        document.getElementById("loginErro").innerText =
+            "Erro ao conectar no servidor";
     }
 }
 
